@@ -120,6 +120,8 @@ namespace SimpleFileBrowser
 			createFolderButton.image.color = skin.ContextMenuBackgroundColor;
 			deleteButton.image.color = skin.ContextMenuBackgroundColor;
 			renameButton.image.color = skin.ContextMenuBackgroundColor;
+			makeQuickLinkButton.image.color = skin.ContextMenuBackgroundColor;
+			removeQuickLinkButton.image.color = skin.ContextMenuBackgroundColor;
 
 			for( int i = 0; i < allButtonLayoutElements.Length; i++ )
 				allButtonLayoutElements[i].preferredHeight = skin.RowHeight + 1;
