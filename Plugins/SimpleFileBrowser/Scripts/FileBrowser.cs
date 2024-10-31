@@ -2346,6 +2346,7 @@ namespace SimpleFileBrowser
 				FileSystemEntry fileInfo = validFileEntries[fileEntryIndex];
 				userQuickLinks.Directories.Add(fileInfo.Path);
 				AddQuickLink(fileInfo.Name, fileInfo.Path);
+				allQuickLinks[^1].OnSkinRefreshed(m_skin);
 				SaveUserQuickLinks();
 			}
 		}
@@ -2360,6 +2361,10 @@ namespace SimpleFileBrowser
 			driveQuickLinks = null;
 			numberOfDriveQuickLinks = 0;
 			InitializeQuickLinks();
+			foreach (FileBrowserQuickLink quickLink in allQuickLinks)
+			{
+				quickLink.OnSkinRefreshed(m_skin);
+			}
 		}
 
 		// Prompts user to rename the selected file/folder
