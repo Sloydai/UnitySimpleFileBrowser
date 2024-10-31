@@ -8,6 +8,7 @@ using System.IO;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Text;
 #if ENABLE_INPUT_SYSTEM && !ENABLE_LEGACY_INPUT_MANAGER
 using UnityEngine.InputSystem;
@@ -590,6 +591,10 @@ namespace SimpleFileBrowser
 
 		// Required in RefreshFiles() function
 		private PointerEventData nullPointerEventData;
+		
+		private UserQuickLinks userQuickLinks;
+		private string UserQuickLinksDirectoryPath => Path.Combine(Application.persistentDataPath, nameof(SimpleFileBrowser));
+		private const string userQuickLinksStorageFileName = "QuickLinks";
 		#endregion
 
 		#region Properties
@@ -1041,6 +1046,8 @@ namespace SimpleFileBrowser
 		#region Initialization Functions
 		private void InitializeQuickLinks()
 		{
+			InitializeUserQuickLinks();
+			
 			quickLinksInitialized = true;
 			drivesNextRefreshTime = Time.realtimeSinceStartup + m_drivesRefreshInterval;
 
@@ -1092,10 +1099,41 @@ namespace SimpleFileBrowser
 				AddQuickLink( quickLink.icon, quickLink.name, quickLinkPath );
 			}
 
-			quickLinks = null;
+			foreach (string userQuickLink in userQuickLinks.Directories)
+			{
+				string folderName = Path.GetFileName(userQuickLink.TrimEnd(Path.DirectorySeparatorChar));
+				AddQuickLink(null, folderName, userQuickLink );
+			}
+
+			//quickLinks = null;
 #endif
 		}
 
+		private void InitializeUserQuickLinks()
+		{
+			string filePath = Path.Combine(UserQuickLinksDirectoryPath, userQuickLinksStorageFileName);
+			
+			if (Directory.Exists(UserQuickLinksDirectoryPath))
+			{
+				if (File.Exists(filePath))
+				{
+					string text = File.ReadAllText(filePath);
+					userQuickLinks = JsonUtility.FromJson<UserQuickLinks>(text);
+				}
+				else
+				{
+					userQuickLinks = new UserQuickLinks();
+					File.WriteAllText(filePath, JsonUtility.ToJson(userQuickLinks));
+				}
+			}
+			else
+			{
+				Directory.CreateDirectory(UserQuickLinksDirectoryPath);
+				userQuickLinks = new UserQuickLinks();
+				File.WriteAllText(filePath, JsonUtility.ToJson(userQuickLinks));
+			}
+		}
+		
 		private void RefreshDriveQuickLinks()
 		{
 			// Check if drives has changed since the last refresh
@@ -1397,7 +1435,12 @@ namespace SimpleFileBrowser
 			bool deselectAllButtonVisible = isMoreOptionsMenu && selectedFileEntries.Count > 1;
 			bool deleteButtonVisible = contextMenuShowDeleteButton && selectedFileEntries.Count > 0;
 			bool renameButtonVisible = contextMenuShowRenameButton && selectedFileEntries.Count == 1;
+			bool makeQuickLinkButtonVisible = selectedFileEntries.Count > 0 
+			                                  && selectedFileEntries.All(e => validFileEntries[e].IsDirectory ) 
+			                                  && selectedFileEntries.Any(e => userQuickLinks.Directories.Contains(validFileEntries[e].Path) == false);
 
+			bool removeQuickLinkButtonVisible = selectedFileEntries.Count == 0 && userQuickLinks.Directories.Contains(m_currentPath);
+			
 			if( selectAllButtonVisible && m_pickerMode == PickMode.Files )
 			{
 				// In file selection mode, if only folders exist in the current path, "Select All" option shouldn't be visible
@@ -1411,8 +1454,9 @@ namespace SimpleFileBrowser
 					}
 				}
 			}
-
-			contextMenu.Show( selectAllButtonVisible, deselectAllButtonVisible, deleteButtonVisible, renameButtonVisible, position, isMoreOptionsMenu );
+			
+			contextMenu.Show( selectAllButtonVisible, deselectAllButtonVisible, deleteButtonVisible, renameButtonVisible, 
+				makeQuickLinkButtonVisible, removeQuickLinkButtonVisible, position, isMoreOptionsMenu );
 		}
 
 		private void OnSubmitButtonClicked()
@@ -2282,6 +2326,40 @@ namespace SimpleFileBrowser
 				int fileEntryIndex = Mathf.Max( 0, FilenameToFileEntryIndex( folderName ) );
 				filesScrollRect.verticalNormalizedPosition = validFileEntries.Count > 1 ? ( 1f - (float) fileEntryIndex / ( validFileEntries.Count - 1 ) ) : 1f;
 			} );
+		}
+
+		private void SaveUserQuickLinks()
+		{
+			string filePath = Path.Combine(UserQuickLinksDirectoryPath, userQuickLinksStorageFileName);
+			File.WriteAllText(filePath, JsonUtility.ToJson(userQuickLinks));
+		}
+
+		public void MakeQuickLinksForSelectedFolders()
+		{
+			foreach (int fileEntryIndex in selectedFileEntries)
+			{
+				if (userQuickLinks.Directories.Contains(validFileEntries[fileEntryIndex].Path))
+				{
+					continue;
+				}
+				
+				FileSystemEntry fileInfo = validFileEntries[fileEntryIndex];
+				userQuickLinks.Directories.Add(fileInfo.Path);
+				AddQuickLink(fileInfo.Name, fileInfo.Path);
+				SaveUserQuickLinks();
+			}
+		}
+		
+		public void RemoveSelectedQuickLink()
+		{
+			userQuickLinks.Directories.Remove(m_currentPath);
+			SaveUserQuickLinks();
+			ClearQuickLinks();
+			quickLinksInitialized = false;
+			generateQuickLinksForDrives = true;
+			driveQuickLinks = null;
+			numberOfDriveQuickLinks = 0;
+			InitializeQuickLinks();
 		}
 
 		// Prompts user to rename the selected file/folder

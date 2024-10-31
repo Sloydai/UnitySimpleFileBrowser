@@ -22,6 +22,10 @@ namespace SimpleFileBrowser
 		private Button deleteButton;
 		[SerializeField]
 		private Button renameButton;
+		[SerializeField]
+		private Button makeQuickLinkButton;
+		[SerializeField]
+		private Button removeQuickLinkButton;
 
 		[SerializeField]
 		private GameObject selectAllButtonSeparator;
@@ -44,14 +48,18 @@ namespace SimpleFileBrowser
 			createFolderButton.onClick.AddListener( OnCreateFolderButtonClicked );
 			deleteButton.onClick.AddListener( OnDeleteButtonClicked );
 			renameButton.onClick.AddListener( OnRenameButtonClicked );
+			makeQuickLinkButton.onClick.AddListener( OnMakeQuickLinkButtonClicked );
+			removeQuickLinkButton.onClick.AddListener( OnRemoveQuickLinkButtonClicked );
 		}
 
-		internal void Show( bool selectAllButtonVisible, bool deselectAllButtonVisible, bool deleteButtonVisible, bool renameButtonVisible, Vector2 position, bool isMoreOptionsMenu )
+		internal void Show( bool selectAllButtonVisible, bool deselectAllButtonVisible, bool deleteButtonVisible, bool renameButtonVisible, bool makeQuickLinkButtonVisible, bool removeQuickLinkButtonVisible, Vector2 position, bool isMoreOptionsMenu )
 		{
 			selectAllButton.gameObject.SetActive( selectAllButtonVisible );
 			deselectAllButton.gameObject.SetActive( deselectAllButtonVisible );
 			deleteButton.gameObject.SetActive( deleteButtonVisible );
 			renameButton.gameObject.SetActive( renameButtonVisible );
+			makeQuickLinkButton.gameObject.SetActive( makeQuickLinkButtonVisible );
+			removeQuickLinkButton.gameObject.SetActive( removeQuickLinkButtonVisible );
 			selectAllButtonSeparator.SetActive( !deselectAllButtonVisible );
 
 			rectTransform.anchoredPosition = position;
@@ -151,6 +159,18 @@ namespace SimpleFileBrowser
 		{
 			Hide();
 			fileBrowser.RenameSelectedFile();
+		}
+
+		private void OnMakeQuickLinkButtonClicked()
+		{
+			Hide();
+			fileBrowser.MakeQuickLinksForSelectedFolders();
+		}
+		
+		private void OnRemoveQuickLinkButtonClicked()
+		{
+			Hide();
+			fileBrowser.RemoveSelectedQuickLink();
 		}
 	}
 }
